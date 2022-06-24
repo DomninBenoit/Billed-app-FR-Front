@@ -70,7 +70,6 @@ describe("Given I am connected as an employee", () => {
 describe("Given I am a user connected as employee", () => {
   describe("When i add a new bill", () => {
     beforeEach(() => {
-      jest.spyOn(mockStore, "bills")
       Object.defineProperty(
           window,
           'localStorage',
@@ -91,29 +90,17 @@ describe("Given I am a user connected as employee", () => {
         document.body.innerHTML = ROUTES({ pathname })
       }
       const store = mockStore;
-
-      const file = screen.getByTestId("file");
-      const fileTest = new File(["test.png"], "test.png", {type: "image/png"});
-      let formExpense = screen.getByTestId("expense-type");      
-      let formName = screen.getByTestId("expense-name");      
-      let formDate = screen.getByTestId("datepicker");      
-      let formAmount = screen.getByTestId("amount");      
-      let formTVAValue = screen.getByTestId("vat");    
-      let formTVAPourcent = screen.getByTestId("pct");
-      
-      userEvent.selectOptions(formExpense, ["Restaurants et bars"])
-      formName.value = "Repas d'affaire"
-      formDate.value = "2021-11-22"
-      formAmount.value = "60";
-      formTVAValue.value = "10";
-      formTVAPourcent.value = "20";
-      userEvent.upload(file, fileTest);
-
-
-     
       const newBill = new NewBill({
         document, onNavigate, store, localStorage: window.localStorage
       })
+
+      const file = screen.getByTestId("file");
+      const fileTest = new File(["test.png"], "test.png", {type: "image/png"});
+      userEvent.upload(file, fileTest);
+
+      const handleChangeFile = jest.fn((e) => newBill.handleChangeFile(e));
+      file.addEventListener('change', handleChangeFile);
+      userEvent.upload(file, fileTest);
       
       const handleSubmit = jest.fn(newBill.handleSubmit);
       const formNewBill = screen.getByTestId("form-new-bill");
@@ -121,10 +108,7 @@ describe("Given I am a user connected as employee", () => {
       formNewBill.addEventListener("submit", handleSubmit);
       userEvent.click(btnSendBill);
       expect(handleSubmit).toHaveBeenCalled()
-      /*let response;
-      try {
-        response = await store.bills
-      }*/
+      
     })
     test("fetches bills from an API and fails with 404 message error", async () => {
       await new Promise(process.nextTick);
