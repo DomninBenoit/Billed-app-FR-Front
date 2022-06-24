@@ -20,7 +20,12 @@ const row = (bill) => {
   }
 
 const rows = (data) => {
-  return (data && data.length) ? data.map(bill => row(bill)).join("") : ""
+  // bug report - Bills, mise en place du tri pour les dates des notes de frais
+  const antiChrono = (a, b) => ((a.date < b.date) ? 1 : -1);
+  if (data && data.length) {
+    const datesSorted = data.sort(antiChrono)
+    return datesSorted.map(bill => row(bill)).join("") 
+  }  return ""
 }
 
 export default ({ data: bills, loading, error }) => {
