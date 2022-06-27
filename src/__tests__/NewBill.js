@@ -41,6 +41,25 @@ describe("Given I am connected as an employee", () => {
       expect(handleChangeFile).toHaveBeenCalled();
 
     })
+    test("then choice an valid file", async () => {
+      const html = NewBillUI()
+      document.body.innerHTML = html
+      const onNavigate = (pathname) => {
+        document.body.innerHTML = ROUTES({ pathname })
+      }
+      const store = mockStore;
+      const newBill = new NewBill({
+        document, onNavigate, store, localStorage: window.localStorage
+      })
+
+      const file = screen.getByTestId("file");
+      const fileTest = new File(["test.png"], "test.png", {type: "image/png"});
+      userEvent.upload(file, fileTest);
+
+      const handleChangeFile = jest.fn((e) => newBill.handleChangeFile(e));
+      file.addEventListener('change', handleChangeFile);
+      userEvent.upload(file, fileTest);
+    })
     test("Then I complete the rest of the form and submit it", () => {
       Object.defineProperty(window, 'localStorage', { value: localStorageMock })
       window.localStorage.setItem('user', JSON.stringify({
@@ -68,7 +87,6 @@ describe("Given I am connected as an employee", () => {
 
 // test d'intégration POST
 describe("Given I am a user connected as employee", () => {
-  describe("When i add a new bill", () => {
     beforeEach(() => {
       Object.defineProperty(
           window,
@@ -78,37 +96,55 @@ describe("Given I am a user connected as employee", () => {
       window.localStorage.setItem('user', JSON.stringify({
         type: 'Employee',
       }))
-      const root = document.createElement("div")
-      root.setAttribute("id", "root")
-      document.body.appendChild(root)
-      router()
-    })
     test("Then it creates a new bill", async () => {
-      const html = NewBillUI()
-      document.body.innerHTML = html
-      const onNavigate = (pathname) => {
-        document.body.innerHTML = ROUTES({ pathname })
+      // Init the UI
+      document.body.innerHTML = NewBillUI()
+
+			// Create an object with the values to add in the BDD
+      const earlyBillInfos = {
+        fileUrl: "http://localhost/images/test.png",
+        fileName: "test.png",
+        email: "a@a",
       }
-      const store = mockStore;
-      const newBill = new NewBill({
-        document, onNavigate, store, localStorage: window.localStorage
-      })
 
-      const file = screen.getByTestId("file");
-      const fileTest = new File(["test.png"], "test.png", {type: "image/png"});
-      userEvent.upload(file, fileTest);
+			// Get the bills method in the mock
+      const mockedBills = mockStore.bills()
 
-      const handleChangeFile = jest.fn((e) => newBill.handleChangeFile(e));
-      file.addEventListener('change', handleChangeFile);
-      userEvent.upload(file, fileTest);
-      
-      const handleSubmit = jest.fn(newBill.handleSubmit);
-      const formNewBill = screen.getByTestId("form-new-bill");
-      const btnSendBill = screen.getByTestId('btn-send-bill');
-      formNewBill.addEventListener("submit", handleSubmit);
-      userEvent.click(btnSendBill);
-      expect(handleSubmit).toHaveBeenCalled()
-      
+			// Mock the update and create methods
+      const spyCreate = jest.spyOn(mockedBills, "create")
+      const spyUpdate = jest.spyOn(mockedBills, "update")
+
+			// Call the create method with the values to add
+      const billCreated = await spyCreate(earlyBillInfos)
+
+			// Check if the method have been called
+      expect(spyCreate).toHaveBeenCalled()
+
+			// Check the returned values by the create method
+      expect(billCreated.fileUrl).toBe("http://localhost/images/test.png")
+
+			// Create an object with the values to add in the BDD
+      const completeBillInfos = {
+        vat: "20",
+        fileUrl: "http://localhost/images/test.jpg",
+        status: "pending",
+        type: "Hôtel et logement",
+        commentary: "test",
+        name: "test",
+        fileName: "test.jpg",
+        date: "2022-06-27",
+        amount: 100,
+        commentAdmin: "ok",
+        email: "a@a",
+        pct: 20
+      }
+
+			// Call the update method with the values to add
+      const billUpdated = await spyUpdate(completeBillInfos)
+
+			// Check the returned values by the update method
+      expect(billUpdated.fileUrl).toBe("http://localhost/images/test.jpg")
+      expect(billUpdated.fileName).toBe("test.jpg")
     })
     test("fetches bills from an API and fails with 404 message error", async () => {
       await new Promise(process.nextTick);
